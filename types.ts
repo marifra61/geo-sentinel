@@ -1,8 +1,18 @@
+
 export enum AnalysisStatus {
   IDLE = 'IDLE',
   ANALYZING = 'ANALYZING',
   COMPLETE = 'COMPLETE',
   ERROR = 'ERROR'
+}
+
+export type UserPlan = 'Free' | 'Pro' | 'Agency';
+
+export interface UserAccount {
+  plan: UserPlan;
+  dailyUsage: number;
+  monthlyUsage: number;
+  email?: string;
 }
 
 export interface Metric {
@@ -64,4 +74,6 @@ export interface SeoReport {
   technicalIssues: TechnicalIssue[];
   aiInsights: AiPlatformInsight[];
   recommendations: Recommendation[];
+  // Plan-specific metadata
+  planAtGeneration: UserPlan;
 }

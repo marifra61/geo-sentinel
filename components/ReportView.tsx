@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { SeoReport, Metric, ContentGap, TechnicalIssue } from '../types';
+import { SeoReport, Metric, ContentGap, TechnicalIssue, UserPlan } from '../types';
 import { PdfGenerator } from './PdfGenerator';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { 
@@ -30,11 +30,13 @@ import {
   Construction,
   ShieldAlert,
   ShieldCheck,
-  ZapOff
+  ZapOff,
+  Crown
 } from 'lucide-react';
 
 interface ReportViewProps {
   report: SeoReport;
+  userPlan: UserPlan;
   onReset: () => void;
 }
 
@@ -204,7 +206,7 @@ const AiFrequencyBadge: React.FC<{ frequency: ContentGap['aiFrequency'] }> = ({ 
   );
 };
 
-export const ReportView: React.FC<ReportViewProps> = ({ report, onReset }) => {
+export const ReportView: React.FC<ReportViewProps> = ({ report, userPlan, onReset }) => {
   const radarData = report.metrics.map(m => ({
     subject: m.name.split(' ').join('\n'), 
     originalName: m.name,
@@ -231,15 +233,25 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, onReset }) => {
       
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-200 pb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">AI Optimization Audit</h1>
-          <p className="text-slate-500 mt-1 flex items-center gap-2">
-            Analysis for 
-            <a href={report.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1 font-medium">
-              {report.url}
-              <ArrowUpRight size={14} />
-            </a>
-          </p>
+        <div className="flex items-center gap-4">
+          <div className={`p-2 rounded-xl ${
+            userPlan === 'Agency' ? 'bg-slate-900 text-blue-400' : 
+            userPlan === 'Pro' ? 'bg-blue-600 text-white' : 
+            'bg-slate-100 text-slate-600'
+          }`}>
+            {userPlan === 'Agency' ? <Crown size={24} /> : <ShieldCheck size={24} />}
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">AI Optimization Audit</h1>
+            <p className="text-slate-500 mt-1 flex items-center gap-2">
+              Analysis for 
+              <a href={report.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline inline-flex items-center gap-1 font-medium">
+                {report.url}
+                <ArrowUpRight size={14} />
+              </a>
+              {userPlan === 'Free' && <span className="text-[10px] font-black uppercase bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full ml-2">Standard Protocol</span>}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -248,7 +260,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, onReset }) => {
           >
             New Analysis
           </button>
-          <PdfGenerator report={report} />
+          <PdfGenerator report={report} userPlan={userPlan} />
         </div>
       </div>
 
@@ -445,61 +457,6 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, onReset }) => {
         </div>
       </div>
 
-      {/* Google vs AI SEO Comparison */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-all">
-           <div className="flex items-center gap-3 mb-6">
-             <div className="bg-slate-100 p-3 rounded-xl text-slate-600">
-                <Search size={24} />
-             </div>
-             <div>
-               <h3 className="font-bold text-slate-900 text-lg leading-tight">Traditional Google SEO</h3>
-               <p className="text-xs text-slate-500 font-medium">Keywords, Backlinks, & Crawlability</p>
-             </div>
-           </div>
-           <ul className="space-y-4">
-             {report.googleVsAiComparison.googleFocus.map((item, i) => (
-               <li key={i} className="flex items-start gap-3 text-sm text-slate-600 font-medium bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
-                 <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                 {item}
-               </li>
-             ))}
-           </ul>
-        </div>
-        <div id="geo-factors" className="bg-slate-900 p-8 rounded-2xl shadow-xl relative overflow-hidden text-white group">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-blue-600/20 transition-all duration-700"></div>
-           <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="bg-blue-600/20 p-3 rounded-xl text-blue-400 ring-1 ring-blue-500/30">
-                  <Bot size={24} />
-              </div>
-              <div>
-                <h3 className="font-bold text-white text-lg leading-tight">The AI-First SEO Era</h3>
-                <p className="text-xs text-blue-300 font-bold uppercase tracking-widest">Generative Engine Optimization</p>
-              </div>
-            </div>
-            <ul className="grid grid-cols-1 gap-3 mb-8">
-              {report.googleVsAiComparison.aiFocus.map((item, i) => (
-                <li key={i} className="flex items-start gap-3 text-sm text-blue-100 bg-white/5 p-3 rounded-xl border border-white/5 hover:bg-white/10 transition-colors">
-                  <Zap className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-
-            <div className="border-t border-white/10 pt-6">
-              <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Sparkles size={16} />
-                Expert Recommendation
-              </h4>
-              <p className="text-sm text-slate-300 italic leading-relaxed font-medium">
-                "To rank in Gemini and ChatGPT, you must move beyond matching words to providing a verifiable knowledge base. High performance in Entity Authority and Citation Potential is now the primary driver of digital visibility."
-              </p>
-            </div>
-           </div>
-        </div>
-      </div>
-
       {/* Action Plan */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
         {/* Platform Insights */}
@@ -531,7 +488,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, onReset }) => {
            </div>
         </div>
 
-        {/* Action Plan */}
+        {/* Strategic Roadmap */}
         <div>
            <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
              <ArrowUpRight className="text-blue-600" size={24} />
