@@ -1,0 +1,8 @@
+
+{
+  "name": "GEO Sentinel",
+  "description": "Enterprise-grade monitor and optimizer for Generative Engine Optimization (GEO). Guard your brand presence in AI search.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
