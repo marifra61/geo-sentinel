@@ -31,7 +31,10 @@ import {
   ShieldAlert,
   ShieldCheck,
   ZapOff,
-  Crown
+  Crown,
+  MessageCircle,
+  Cpu,
+  Feather
 } from 'lucide-react';
 
 interface ReportViewProps {
@@ -71,32 +74,32 @@ const PlatformIcon: React.FC<{ platform: string }> = ({ platform }) => {
   switch (platform) {
     case 'Gemini':
       return (
-        <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shadow-sm">
-          <Sparkles className="w-5 h-5" />
+        <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+          <Sparkles className="w-4 h-4" />
         </div>
       );
     case 'ChatGPT':
       return (
-        <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm">
-          <MessageSquareMore className="w-5 h-5" />
+        <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
+          <Zap className="w-4 h-4" />
         </div>
       );
     case 'Perplexity':
       return (
-        <div className="p-2 rounded-xl bg-cyan-50 text-cyan-700 border border-cyan-100 shadow-sm">
-          <Search className="w-5 h-5" />
+        <div className="p-2 rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-100 shadow-sm group-hover:bg-cyan-600 group-hover:text-white transition-all duration-300">
+          <Search className="w-4 h-4" />
         </div>
       );
     case 'Claude':
       return (
-        <div className="p-2 rounded-xl bg-orange-50 text-orange-700 border border-orange-100 shadow-sm">
-          <Brain className="w-5 h-5" />
+        <div className="p-2 rounded-xl bg-orange-50 text-orange-600 border border-orange-100 shadow-sm group-hover:bg-orange-600 group-hover:text-white transition-all duration-300">
+          <Feather className="w-4 h-4" />
         </div>
       );
     default:
       return (
-        <div className="p-2 rounded-xl bg-slate-50 text-slate-500 border border-slate-100 shadow-sm">
-          <Bot className="w-5 h-5" />
+        <div className="p-2 rounded-xl bg-slate-50 text-slate-500 border border-slate-100 shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all duration-300">
+          <Bot className="w-4 h-4" />
         </div>
       );
   }
@@ -471,7 +474,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, userPlan, onRese
                  <div className="flex justify-between items-center mb-3">
                    <div className="flex items-center gap-3">
                      <PlatformIcon platform={insight.platform} />
-                     <span className="font-bold text-slate-800">{insight.platform}</span>
+                     <span className="font-bold text-slate-800 group-hover:text-slate-900 transition-colors">{insight.platform}</span>
                    </div>
                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-wider ${
                      insight.visibility === 'High' ? 'bg-green-100 text-green-700' :
@@ -481,7 +484,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, userPlan, onRese
                      {insight.visibility} Visibility
                    </span>
                  </div>
-                 <p className="text-sm text-slate-600 font-medium leading-relaxed">{insight.suggestion}</p>
+                 <p className="text-sm text-slate-600 font-medium leading-relaxed group-hover:text-slate-700 transition-colors">{insight.suggestion}</p>
                  <div className="absolute top-0 right-0 h-full w-1 bg-gradient-to-b from-transparent via-slate-200 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                </div>
              ))}
