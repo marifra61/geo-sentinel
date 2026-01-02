@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Sparkles, AlertCircle, TrendingUp, ShieldCheck, CreditCard, User, LogOut, Crown, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, TrendingUp, ShieldCheck, CreditCard, User, LogOut, Crown, ChevronRight, AlertCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { analyzeUrl } from './services/geminiService';
 import { AnalysisStatus, SeoReport, UserPlan, UserAccount } from './types';
@@ -10,6 +10,21 @@ import { HowItWorks } from './components/HowItWorks';
 import { PricingView } from './components/PricingView';
 import { LoginView } from './components/LoginView';
 import { StripeCheckout } from './components/StripeCheckout';
+
+// Extended UserAccount for the simulated database
+interface UserRecord extends UserAccount {
+  password?: string;
+}
+
+// Global Password Strength Validator
+export const isPasswordStrong = (password: string): boolean => {
+  const minLength = 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumber && hasSymbol;
+};
 
 const App: React.FC = () => {
   const [url, setUrl] = useState('');
@@ -21,7 +36,17 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'HOME' | 'HOW_IT_WORKS' | 'PRICING' | 'AUTH' | 'STRIPE'>('AUTH');
   const [selectedPlanForSignup, setSelectedPlanForSignup] = useState<UserPlan | null>(null);
 
-  // User Authentication & Account State with Safety
+  // Simulated User Database
+  const [users, setUsers] = useState<Record<string, UserRecord>>(() => {
+    try {
+      const saved = localStorage.getItem('geo_sentinel_users');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
       return localStorage.getItem('geo_sentinel_auth') === 'true';
@@ -30,32 +55,47 @@ const App: React.FC = () => {
     }
   });
 
-  const [userAccount, setUserAccount] = useState<UserAccount>(() => {
-    const defaultAccount: UserAccount = { plan: 'Free', dailyUsage: 0, monthlyUsage: 0 };
-    try {
-      const saved = localStorage.getItem('geo_sentinel_account');
-      return saved ? JSON.parse(saved) : defaultAccount;
-    } catch (e) {
-      console.error("Failed to parse user account from storage:", e);
-      return defaultAccount;
-    }
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(() => {
+    return localStorage.getItem('geo_sentinel_current_user');
   });
 
-  // Persistence side-effects
+  // Derive current account from users DB
+  const userAccount = (currentUserEmail && users[currentUserEmail]) 
+    ? users[currentUserEmail] 
+    : { plan: 'Free' as UserPlan, dailyUsage: 0, monthlyUsage: 0 };
+
+  // Persist State
   useEffect(() => {
-    localStorage.setItem('geo_sentinel_account', JSON.stringify(userAccount));
+    localStorage.setItem('geo_sentinel_users', JSON.stringify(users));
     localStorage.setItem('geo_sentinel_auth', isAuthenticated.toString());
-  }, [userAccount, isAuthenticated]);
+    if (currentUserEmail) {
+      localStorage.setItem('geo_sentinel_current_user', currentUserEmail);
+    } else {
+      localStorage.removeItem('geo_sentinel_current_user');
+    }
+  }, [users, isAuthenticated, currentUserEmail]);
 
   // Auth Handlers
-  const handleLogin = (email: string) => {
-    setIsAuthenticated(true);
-    setUserAccount(prev => ({ ...prev, email }));
-    setCurrentView('HOME');
+  const handleLogin = (email: string, password: string): string | null => {
+    const user = users[email];
+    
+    if (user) {
+      if (user.password === password) {
+        setIsAuthenticated(true);
+        setCurrentUserEmail(email);
+        setCurrentView('HOME');
+        return null;
+      } else {
+        return "Security Protocol Failure: Incorrect password for this identity.";
+      }
+    } else {
+      return "Identity not found. Please select 'Sign Up' to initialize a new protocol account.";
+    }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setCurrentUserEmail(null);
     setCurrentView('AUTH');
     setReport(null);
     setUrl('');
@@ -70,14 +110,30 @@ const App: React.FC = () => {
     setCurrentView('STRIPE');
   };
 
-  const handleStripeSuccess = () => {
-    setIsAuthenticated(true);
-    setUserAccount(prev => ({ 
-      ...prev, 
+  const handleStripeSuccess = (email?: string, password?: string) => {
+    if (!email || !password) return;
+
+    // Final security check for password strength in App logic
+    if (!isPasswordStrong(password)) {
+      console.error("Critical Security Breach: Weak password bypassed frontend validation.");
+      return;
+    }
+
+    const newUser: UserRecord = {
+      email,
+      password,
       plan: selectedPlanForSignup || 'Free',
       dailyUsage: 0,
       monthlyUsage: 0
+    };
+
+    setUsers(prev => ({
+      ...prev,
+      [email]: newUser
     }));
+
+    setIsAuthenticated(true);
+    setCurrentUserEmail(email);
     setCurrentView('HOME');
     setSelectedPlanForSignup(null);
   };
@@ -89,20 +145,18 @@ const App: React.FC = () => {
     setError(null);
   };
 
-  // Main Analysis Logic
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url) return;
+    if (!url || !currentUserEmail) return;
 
-    // Usage Limits Enforcement
     if (userAccount.plan === 'Free' && userAccount.dailyUsage >= 2) {
-      setError("Daily limit reached. The Free tier is capped at 2 audits per 24h. Please upgrade for more bandwidth.");
+      setError("Protocol limit reached. Free accounts are capped at 2 daily audits.");
       setStatus(AnalysisStatus.ERROR);
       return;
     }
     
     if (userAccount.plan === 'Pro' && userAccount.monthlyUsage >= 15) {
-      setError("Monthly limit reached. The Pro tier is limited to 15 audits per month. Upgrade to Agency for unlimited scans.");
+      setError("Monthly quota exhausted. Professional tier limited to 15 audits.");
       setStatus(AnalysisStatus.ERROR);
       return;
     }
@@ -119,21 +173,23 @@ const App: React.FC = () => {
       const data = await analyzeUrl(validUrl);
       setReport({ ...data, planAtGeneration: userAccount.plan });
       
-      setUserAccount(prev => ({
+      setUsers(prev => ({
         ...prev,
-        dailyUsage: prev.dailyUsage + 1,
-        monthlyUsage: prev.monthlyUsage + 1
+        [currentUserEmail]: {
+          ...prev[currentUserEmail],
+          dailyUsage: prev[currentUserEmail].dailyUsage + 1,
+          monthlyUsage: prev[currentUserEmail].monthlyUsage + 1
+        }
       }));
       
       setStatus(AnalysisStatus.COMPLETE);
     } catch (err: any) {
       console.error(err);
       setStatus(AnalysisStatus.ERROR);
-      setError(err.message || "Forensic audit failed. Verify the domain is reachable and try again.");
+      setError(err.message || "Forensic audit failed. Verify domain and try again.");
     }
   };
 
-  // Projection Data for Dashboard
   const searchTrendData = [
     { year: '2022', traditional: 95, ai: 5 },
     { year: '2023', traditional: 85, ai: 15 },
@@ -143,9 +199,7 @@ const App: React.FC = () => {
     { year: '2027', traditional: 30, ai: 70 },
   ];
 
-  // Robust View Rendering Logic
   const renderViewContent = () => {
-    // 1. Unauthenticated Flows
     if (!isAuthenticated) {
       if (currentView === 'PRICING') {
         return (
@@ -162,14 +216,17 @@ const App: React.FC = () => {
         );
       }
       if (currentView === 'STRIPE' && selectedPlanForSignup) {
-        return <StripeCheckout plan={selectedPlanForSignup} onSuccess={handleStripeSuccess} onCancel={() => setCurrentView('PRICING')} />;
+        return (
+          <StripeCheckout 
+            plan={selectedPlanForSignup} 
+            onSuccess={(email, password) => handleStripeSuccess(email, password)} 
+            onCancel={() => setCurrentView('PRICING')} 
+          />
+        );
       }
-      // Default unauth view
       return <LoginView onLogin={handleLogin} onSignUpClick={handleSignUpStart} />;
     }
 
-    // 2. Authenticated Flows
-    // Authenticated users can always toggle back to Pricing to manage their plan
     if (currentView === 'PRICING') {
       return (
         <div className="min-h-screen bg-slate-50">
@@ -186,10 +243,27 @@ const App: React.FC = () => {
     }
     
     if (currentView === 'STRIPE' && selectedPlanForSignup) {
-      return <StripeCheckout plan={selectedPlanForSignup} onSuccess={handleStripeSuccess} onCancel={() => setCurrentView('PRICING')} />;
+      return (
+        <StripeCheckout 
+          plan={selectedPlanForSignup} 
+          onSuccess={() => {
+            if (currentUserEmail) {
+              setUsers(prev => ({
+                ...prev,
+                [currentUserEmail]: {
+                  ...prev[currentUserEmail],
+                  plan: selectedPlanForSignup
+                }
+              }));
+              setCurrentView('HOME');
+              setSelectedPlanForSignup(null);
+            }
+          }} 
+          onCancel={() => setCurrentView('PRICING')} 
+        />
+      );
     }
 
-    // Standard Dashboard / How it Works view
     return (
       <div className="min-h-screen bg-slate-50">
         <nav className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
@@ -282,9 +356,9 @@ const App: React.FC = () => {
                     <div className="w-1 h-1 rounded-full bg-slate-300"></div>
                     <div className="flex items-center gap-2">
                       {userAccount.plan === 'Free' ? (
-                        <span className="text-blue-600">AUDITS REMAINING: {2 - userAccount.dailyUsage}/2 today</span>
+                        <span className="text-blue-600">AUDITS REMAINING: {Math.max(0, 2 - userAccount.dailyUsage)}/2 today</span>
                       ) : userAccount.plan === 'Pro' ? (
-                        <span className="text-blue-600">AUDITS REMAINING: {15 - userAccount.monthlyUsage}/15 this month</span>
+                        <span className="text-blue-600">AUDITS REMAINING: {Math.max(0, 15 - userAccount.monthlyUsage)}/15 this month</span>
                       ) : (
                         <span className="text-emerald-600">UNLIMITED AGENCY ACCESS</span>
                       )}
@@ -296,7 +370,6 @@ const App: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Visual components... */}
                   <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 opacity-40 grayscale hover:grayscale-0 transition-all duration-700 mb-20">
                     <div className="text-center font-black text-xl text-slate-900 italic tracking-tighter">GEMINI</div>
                     <div className="text-center font-black text-xl text-slate-900 italic tracking-tighter">GPT-4o</div>
