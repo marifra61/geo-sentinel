@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { SeoReport, Metric, ContentGap, TechnicalIssue, UserPlan } from '../types';
 import { PdfGenerator } from './PdfGenerator';
@@ -36,7 +37,8 @@ import {
   Cpu,
   Feather,
   BarChart4,
-  Flame
+  Flame,
+  Link as LinkIcon
 } from 'lucide-react';
 
 interface ReportViewProps {
@@ -58,15 +60,15 @@ const ScoreBadge: React.FC<{ score: number }> = ({ score }) => {
 };
 
 const MarketPositionBadge: React.FC<{ position: string }> = ({ position }) => {
-  const styles = {
+  const styles: Record<string, string> = {
     'Leader': 'bg-green-100 text-green-700 border-green-200',
     'Competitive': 'bg-blue-100 text-blue-700 border-blue-200',
     'Behind': 'bg-yellow-100 text-yellow-700 border-yellow-200',
     'At Risk': 'bg-red-100 text-red-700 border-red-200',
-  }[position] || 'bg-slate-100 text-slate-700 border-slate-200';
+  };
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${styles}`}>
+    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${styles[position] || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
       {position}
     </span>
   );
@@ -268,6 +270,30 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, userPlan, onRese
           <PdfGenerator report={report} userPlan={userPlan} />
         </div>
       </div>
+
+      {/* Grounding Sources: MUST extract and list URLs if using Google Search */}
+      {report.groundingSources && report.groundingSources.length > 0 && (
+        <div className="mb-8 bg-slate-50 border border-slate-200 rounded-2xl p-6">
+          <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <Globe className="text-blue-500" size={20} />
+            Search Grounding Sources
+          </h2>
+          <div className="flex flex-wrap gap-4">
+            {report.groundingSources.map((source, i) => (
+              <a 
+                key={i} 
+                href={source.uri} 
+                target="_blank" 
+                rel="noreferrer"
+                className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
+              >
+                <LinkIcon size={14} className="shrink-0" />
+                <span className="truncate max-w-[200px]">{source.title || source.uri}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Score & Benchmark Card */}

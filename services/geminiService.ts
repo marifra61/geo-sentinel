@@ -1,10 +1,13 @@
 
+
 import { GoogleGenAI } from "@google/genai";
 import { SeoReport } from "../types";
 
+// Always use { apiKey: process.env.API_KEY } as per guidelines
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const analyzeUrl = async (url: string): Promise<SeoReport> => {
+  // Use gemini-3-pro-preview for complex reasoning and search grounding tasks
   const modelId = "gemini-3-pro-preview"; 
   
   const prompt = `
@@ -20,12 +23,12 @@ export const analyzeUrl = async (url: string): Promise<SeoReport> => {
     4. **Competitor Forensics**: Research 3-5 top competitors. Provide actual data points on why they might be outranking the target site in LLM responses.
 
     METRICS TO EVALUATE:
-    - Machine Readability (How easily can a scraper/parser digest the content?)
-    - Answer Engine Optimization (Is the content structured as direct answers to complex prompts?)
-    - Entity Authority (Is the brand recognized as a trusted topical expert?)
-    - Semantic Coverage (Does the content cover the 'why' and 'how' or just keywords?)
-    - Citation Potential (Formatting for extraction + outbound sourcing quality)
-    - Factual Accuracy Signals (Presence of original data, expert credentials, and citations)
+    - Machine Readability
+    - Answer Engine Optimization
+    - Entity Authority
+    - Semantic Coverage
+    - Citation Potential
+    - Factual Accuracy Signals
 
     Return a strictly structured JSON response. 
     ENSURE the output is valid JSON. 
@@ -88,38 +91,52 @@ export const analyzeUrl = async (url: string): Promise<SeoReport> => {
     }
   `;
 
+  // Use ai.models.generateContent with both model name and prompt in parameters object
   const response = await ai.models.generateContent({
     model: modelId,
     contents: prompt,
     config: {
       tools: [{ googleSearch: {} }],
+      // Help model output JSON while grounded
+      responseMimeType: "application/json",
     }
   });
 
+  // Extract text using property access, not function call
   const text = response.text;
   if (!text) {
     throw new Error("No response from AI");
   }
 
-  const startIndex = text.indexOf('{');
-  const endIndex = text.lastIndexOf('}');
+  // Extract grounding sources as required by guidelines when using googleSearch
+  const groundingSources = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => ({
+    title: chunk.web?.title,
+    uri: chunk.web?.uri
+  })).filter((source: any) => source.uri) || [];
 
-  if (startIndex === -1 || endIndex === -1) {
-    throw new Error("AI response did not contain a valid JSON object");
-  }
-
-  const jsonString = text.substring(startIndex, endIndex + 1);
-  
   let data;
   try {
-    data = JSON.parse(jsonString);
+    // Attempt to parse text directly first as JSON mode was requested
+    data = JSON.parse(text);
   } catch (e) {
-    throw new Error("AI response contained invalid JSON syntax");
+    // Extract JSON substring if conversational text exists
+    const startIndex = text.indexOf('{');
+    const endIndex = text.lastIndexOf('}');
+    if (startIndex !== -1 && endIndex !== -1) {
+      try {
+        data = JSON.parse(text.substring(startIndex, endIndex + 1));
+      } catch (innerError) {
+        throw new Error("AI response contained invalid JSON syntax.");
+      }
+    } else {
+      throw new Error("AI response did not contain a valid JSON object.");
+    }
   }
 
   return {
     ...data,
     url,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    groundingSources
   };
 };

@@ -1,4 +1,5 @@
 
+
 export enum AnalysisStatus {
   IDLE = 'IDLE',
   ANALYZING = 'ANALYZING',
@@ -79,6 +80,8 @@ export interface SeoReport {
   recommendations: Recommendation[];
   // Plan-specific metadata
   planAtGeneration: UserPlan;
+  // Support for Google Search grounding links
+  groundingSources?: { title?: string; uri?: string }[];
 }
 
 export interface AdminAnalytics {
