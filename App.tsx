@@ -1,15 +1,25 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Sparkles, AlertCircle, TrendingUp, ShieldCheck, CreditCard, User, LogOut, Crown, ChevronRight } from 'lucide-react';
+import { Search, Sparkles, AlertCircle, TrendingUp, ShieldCheck, CreditCard, User, LogOut, Crown, ChevronRight, LayoutDashboard } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { analyzeUrl } from './services/geminiService';
-import { AnalysisStatus, SeoReport, UserPlan, UserAccount } from './types';
+import { AnalysisStatus, SeoReport, UserPlan, UserAccount, AdminAnalytics } from './types';
 import { LoadingState } from './components/LoadingState';
 import { ReportView } from './components/ReportView';
 import { HowItWorks } from './components/HowItWorks';
 import { PricingView } from './components/PricingView';
 import { LoginView } from './components/LoginView';
 import { StripeCheckout } from './components/StripeCheckout';
+import { AdminView } from './components/AdminView';
+
+// Mock Initial Data
+const INITIAL_USERS: UserAccount[] = [
+  { id: '1', email: 'admin@geosentinel.ai', plan: 'Agency', dailyUsage: 5, monthlyUsage: 140, joinedDate: '2024-01-10T10:00:00Z', isAdmin: true },
+  { id: 'admin-frank', email: 'marino.frank@gmail.com', plan: 'Agency', dailyUsage: 0, monthlyUsage: 0, joinedDate: new Date().toISOString(), isAdmin: true },
+  { id: '2', email: 'mark@acme.corp', plan: 'Pro', dailyUsage: 2, monthlyUsage: 12, joinedDate: '2024-02-15T14:30:00Z' },
+  { id: '3', email: 'sarah@design.studio', plan: 'Free', dailyUsage: 1, monthlyUsage: 4, joinedDate: '2024-03-01T09:15:00Z' },
+  { id: '4', email: 'dev@github.io', plan: 'Agency', dailyUsage: 0, monthlyUsage: 250, joinedDate: '2023-11-20T11:45:00Z' },
+];
 
 const App: React.FC = () => {
   const [url, setUrl] = useState('');
@@ -18,7 +28,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   // Navigation State
-  const [currentView, setCurrentView] = useState<'HOME' | 'HOW_IT_WORKS' | 'PRICING' | 'AUTH' | 'STRIPE'>('AUTH');
+  const [currentView, setCurrentView] = useState<'HOME' | 'HOW_IT_WORKS' | 'PRICING' | 'AUTH' | 'STRIPE' | 'ADMIN'>('AUTH');
   const [selectedPlanForSignup, setSelectedPlanForSignup] = useState<UserPlan | null>(null);
 
   // Authentication & Plan State
@@ -26,22 +36,45 @@ const App: React.FC = () => {
     return localStorage.getItem('geo_sentinel_auth') === 'true';
   });
 
-  const [userAccount, setUserAccount] = useState<UserAccount>(() => {
+  // Global Users State (for admin management)
+  const [allUsers, setAllUsers] = useState<UserAccount[]>(() => {
+    const saved = localStorage.getItem('geo_sentinel_all_users');
+    return saved ? JSON.parse(saved) : INITIAL_USERS;
+  });
+
+  const [userAccount, setUserAccount] = useState<UserAccount | null>(() => {
     const saved = localStorage.getItem('geo_sentinel_account');
-    // Default to Free plan if nothing found, but usage is tracked
-    return saved ? JSON.parse(saved) : { plan: 'Free' as UserPlan, dailyUsage: 0, monthlyUsage: 0 };
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    // Sync with the latest plan/data from the allUsers list if possible
+    return INITIAL_USERS.find(u => u.email === parsed.email) || parsed;
   });
 
   // Persist State
   useEffect(() => {
+    localStorage.setItem('geo_sentinel_all_users', JSON.stringify(allUsers));
     localStorage.setItem('geo_sentinel_account', JSON.stringify(userAccount));
     localStorage.setItem('geo_sentinel_auth', isAuthenticated.toString());
-  }, [userAccount, isAuthenticated]);
+  }, [allUsers, userAccount, isAuthenticated]);
 
   const handleLogin = (email: string) => {
-    // In a real app, verify against backend. Here we simulate success.
     setIsAuthenticated(true);
-    setUserAccount(prev => ({ ...prev, email }));
+    // Find existing user or create mock session
+    const existing = allUsers.find(u => u.email === email);
+    const account = existing || { 
+      id: Math.random().toString(36).substr(2, 9), 
+      email, 
+      plan: 'Free' as UserPlan, 
+      dailyUsage: 0, 
+      monthlyUsage: 0, 
+      joinedDate: new Date().toISOString() 
+    };
+    
+    if (!existing) {
+      setAllUsers(prev => [...prev, account]);
+    }
+
+    setUserAccount(account);
     setCurrentView('HOME');
   };
 
@@ -50,6 +83,7 @@ const App: React.FC = () => {
     setCurrentView('AUTH');
     setReport(null);
     setUrl('');
+    setUserAccount(null);
   };
 
   const handleSignUpStart = () => {
@@ -57,27 +91,27 @@ const App: React.FC = () => {
   };
 
   const handleSelectPlan = (plan: UserPlan) => {
-    // Force Stripe Checkout step even for Free if selected during signup to capture "leads"
-    // Though usually Free skips. Here we follow the "take them directly to Stripe" instruction.
     setSelectedPlanForSignup(plan);
     setCurrentView('STRIPE');
   };
 
   const handleStripeSuccess = () => {
     setIsAuthenticated(true);
-    setUserAccount(prev => ({ 
-      ...prev, 
+    const updatedAccount = { 
+      ...userAccount!, 
       plan: selectedPlanForSignup || 'Free',
       dailyUsage: 0,
       monthlyUsage: 0
-    }));
+    };
+    setUserAccount(updatedAccount);
+    setAllUsers(prev => prev.map(u => u.email === updatedAccount.email ? updatedAccount : u));
     setCurrentView('HOME');
     setSelectedPlanForSignup(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url) return;
+    if (!url || !userAccount) return;
 
     // PLAN ENFORCEMENT LOGIC
     if (userAccount.plan === 'Free' && userAccount.dailyUsage >= 2) {
@@ -105,11 +139,13 @@ const App: React.FC = () => {
       setReport({ ...data, planAtGeneration: userAccount.plan });
       
       // Update counters
-      setUserAccount(prev => ({
-        ...prev,
-        dailyUsage: prev.dailyUsage + 1,
-        monthlyUsage: prev.monthlyUsage + 1
-      }));
+      const updated = {
+        ...userAccount,
+        dailyUsage: userAccount.dailyUsage + 1,
+        monthlyUsage: userAccount.monthlyUsage + 1
+      };
+      setUserAccount(updated);
+      setAllUsers(prev => prev.map(u => u.email === updated.email ? updated : u));
       
       setStatus(AnalysisStatus.COMPLETE);
     } catch (err: any) {
@@ -124,6 +160,31 @@ const App: React.FC = () => {
     setStatus(AnalysisStatus.IDLE);
     setReport(null);
     setError(null);
+  };
+
+  const handleAdminAddUser = (user: Partial<UserAccount>) => {
+    const newUser = user as UserAccount;
+    setAllUsers(prev => [...prev, newUser]);
+  };
+
+  const handleAdminDeleteUser = (userId: string) => {
+    setAllUsers(prev => prev.filter(u => u.id !== userId));
+  };
+
+  // Mock Analytics Generation
+  const adminAnalytics: AdminAnalytics = {
+    totalAudits: allUsers.reduce((sum, u) => sum + u.monthlyUsage, 0),
+    totalRevenue: allUsers.reduce((sum, u) => sum + (u.plan === 'Pro' ? 29 : u.plan === 'Agency' ? 199 : 0), 0),
+    growthRate: 18,
+    planDistribution: [
+      { name: 'Agency', value: Math.round((allUsers.filter(u => u.plan === 'Agency').length / allUsers.length) * 100) },
+      { name: 'Pro', value: Math.round((allUsers.filter(u => u.plan === 'Pro').length / allUsers.length) * 100) },
+      { name: 'Free', value: Math.round((allUsers.filter(u => u.plan === 'Free').length / allUsers.length) * 100) },
+    ],
+    usageHistory: Array.from({ length: 30 }, (_, i) => ({
+      date: `${i + 1} Apr`,
+      audits: Math.floor(Math.random() * 50) + 20
+    }))
   };
 
   const searchTrendData = [
@@ -151,7 +212,7 @@ const App: React.FC = () => {
            </div>
            <button onClick={() => setCurrentView('AUTH')} className="text-sm font-bold text-slate-500 hover:text-slate-900 underline">Back to Login</button>
         </nav>
-        <PricingView currentPlan={userAccount.plan} onSelectPlan={handleSelectPlan} />
+        <PricingView currentPlan={userAccount?.plan || 'Free'} onSelectPlan={handleSelectPlan} />
       </div>
     );
   }
@@ -159,6 +220,19 @@ const App: React.FC = () => {
   // STRIPE STEP: Payment Processing
   if (currentView === 'STRIPE' && selectedPlanForSignup) {
     return <StripeCheckout plan={selectedPlanForSignup} onSuccess={handleStripeSuccess} onCancel={() => setCurrentView('PRICING')} />;
+  }
+
+  // ADMIN VIEW
+  if (currentView === 'ADMIN' && userAccount?.isAdmin) {
+    return (
+      <AdminView 
+        users={allUsers} 
+        analytics={adminAnalytics} 
+        onAddUser={handleAdminAddUser} 
+        onDeleteUser={handleAdminDeleteUser} 
+        onClose={() => setCurrentView('HOME')} 
+      />
+    );
   }
 
   return (
@@ -188,16 +262,26 @@ const App: React.FC = () => {
               Manage Plan
             </button>
             
+            {userAccount?.isAdmin && (
+              <button 
+                onClick={() => setCurrentView('ADMIN')}
+                className="flex items-center gap-1.5 text-blue-600 font-bold hover:text-blue-700 transition-colors"
+              >
+                <LayoutDashboard size={16} />
+                Admin Console
+              </button>
+            )}
+
             <div className="h-6 w-px bg-slate-200"></div>
             
             <div className="flex items-center gap-4">
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border ${
-                userAccount.plan === 'Agency' ? 'bg-slate-900 text-blue-400 border-slate-800' :
-                userAccount.plan === 'Pro' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                userAccount?.plan === 'Agency' ? 'bg-slate-900 text-blue-400 border-slate-800' :
+                userAccount?.plan === 'Pro' ? 'bg-blue-50 text-blue-600 border-blue-100' :
                 'bg-slate-100 text-slate-500 border-slate-200'
               }`}>
-                {userAccount.plan === 'Agency' ? <Crown size={12} /> : userAccount.plan === 'Pro' ? <ShieldCheck size={12} /> : <User size={12} />}
-                {userAccount.plan} Protocol
+                {userAccount?.plan === 'Agency' ? <Crown size={12} /> : userAccount?.plan === 'Pro' ? <ShieldCheck size={12} /> : <User size={12} />}
+                {userAccount?.plan} Protocol
               </div>
               <button 
                 onClick={handleLogout} 
@@ -263,19 +347,19 @@ const App: React.FC = () => {
                 <div className="mt-8 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center justify-center gap-4">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                    PLAN: {userAccount.plan}
+                    PLAN: {userAccount?.plan}
                   </div>
                   <div className="w-1 h-1 rounded-full bg-slate-300"></div>
                   <div className="flex items-center gap-2">
-                    {userAccount.plan === 'Free' ? (
-                      <span className="text-blue-600">AUDITS REMAINING: {2 - userAccount.dailyUsage}/2 today</span>
-                    ) : userAccount.plan === 'Pro' ? (
-                      <span className="text-blue-600">AUDITS REMAINING: {15 - userAccount.monthlyUsage}/15 this month</span>
+                    {userAccount?.plan === 'Free' ? (
+                      <span className="text-blue-600">AUDITS REMAINING: {2 - (userAccount?.dailyUsage || 0)}/2 today</span>
+                    ) : userAccount?.plan === 'Pro' ? (
+                      <span className="text-blue-600">AUDITS REMAINING: {15 - (userAccount?.monthlyUsage || 0)}/15 this month</span>
                     ) : (
                       <span className="text-emerald-600">UNLIMITED AGENCY ACCESS</span>
                     )}
                   </div>
-                  {userAccount.plan !== 'Agency' && (
+                  {userAccount?.plan !== 'Agency' && (
                     <button onClick={() => setCurrentView('PRICING')} className="text-blue-500 hover:underline flex items-center gap-1 font-bold">
                       UPGRADE <ChevronRight size={10} />
                     </button>
@@ -341,7 +425,7 @@ const App: React.FC = () => {
             )}
 
             {status === AnalysisStatus.COMPLETE && report && (
-              <ReportView report={report} userPlan={userAccount.plan} onReset={handleReset} />
+              <ReportView report={report} userPlan={userAccount?.plan || 'Free'} onReset={handleReset} />
             )}
           </>
         )}

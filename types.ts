@@ -9,10 +9,13 @@ export enum AnalysisStatus {
 export type UserPlan = 'Free' | 'Pro' | 'Agency';
 
 export interface UserAccount {
+  id: string;
   plan: UserPlan;
   dailyUsage: number;
   monthlyUsage: number;
-  email?: string;
+  email: string;
+  joinedDate: string;
+  isAdmin?: boolean;
 }
 
 export interface Metric {
@@ -76,4 +79,12 @@ export interface SeoReport {
   recommendations: Recommendation[];
   // Plan-specific metadata
   planAtGeneration: UserPlan;
+}
+
+export interface AdminAnalytics {
+  totalAudits: number;
+  totalRevenue: number;
+  growthRate: number;
+  planDistribution: { name: string; value: number }[];
+  usageHistory: { date: string; audits: number }[];
 }
