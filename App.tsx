@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { Search, Sparkles, AlertCircle, TrendingUp, ShieldCheck, CreditCard, User, LogOut, Crown, ChevronRight, LayoutDashboard, Zap, Feather } from 'lucide-react';
 import { analyzeUrl } from './services/geminiService';
@@ -36,12 +35,13 @@ const App: React.FC = () => {
     return localStorage.getItem('geo_sentinel_auth') === 'true';
   });
 
-  // Global Users State (for admin management)
+  // Global Users State - Improved safety to prevent null entries
   const [allUsers, setAllUsers] = useState<UserAccount[]>(() => {
     const saved = localStorage.getItem('geo_sentinel_all_users');
     if (!saved || saved === 'null') return INITIAL_USERS;
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed.filter(u => u && u.email) : INITIAL_USERS;
     } catch {
       return INITIAL_USERS;
     }
@@ -67,8 +67,9 @@ const App: React.FC = () => {
   }, [allUsers, userAccount, isAuthenticated]);
 
   const handleLogin = (email: string) => {
+    if (!email) return;
     setIsAuthenticated(true);
-    const existing = allUsers.find(u => u.email === email);
+    const existing = allUsers.find(u => u && u.email === email);
     const account = existing || { 
       id: Math.random().toString(36).substr(2, 9), 
       email, 
@@ -106,14 +107,14 @@ const App: React.FC = () => {
   const handleStripeSuccess = () => {
     if (!userAccount) return;
     setIsAuthenticated(true);
-    const updatedAccount = { 
+    const updatedAccount: UserAccount = { 
       ...userAccount, 
       plan: selectedPlanForSignup || 'Free',
       dailyUsage: 0,
       monthlyUsage: 0
     };
     setUserAccount(updatedAccount);
-    setAllUsers(prev => prev.map(u => u.email === updatedAccount.email ? updatedAccount : u));
+    setAllUsers(prev => prev.map(u => (u && u.email === updatedAccount.email) ? updatedAccount : u));
     setCurrentView('HOME');
     setSelectedPlanForSignup(null);
   };
@@ -151,7 +152,7 @@ const App: React.FC = () => {
         monthlyUsage: userAccount.monthlyUsage + 1
       };
       setUserAccount(updated);
-      setAllUsers(prev => prev.map(u => u.email === updated.email ? updated : u));
+      setAllUsers(prev => prev.map(u => (u && u.email === updated.email) ? updated : u));
       
       setStatus(AnalysisStatus.COMPLETE);
     } catch (err: any) {
@@ -174,17 +175,17 @@ const App: React.FC = () => {
   };
 
   const handleAdminDeleteUser = (userId: string) => {
-    setAllUsers(prev => prev.filter(u => u.id !== userId));
+    setAllUsers(prev => prev.filter(u => u && u.id !== userId));
   };
 
   const adminAnalytics: AdminAnalytics = {
-    totalAudits: allUsers.reduce((sum, u) => sum + (u.monthlyUsage || 0), 0),
-    totalRevenue: allUsers.reduce((sum, u) => sum + (u.plan === 'Pro' ? 29 : u.plan === 'Agency' ? 199 : 0), 0),
+    totalAudits: allUsers.reduce((sum, u) => sum + (u?.monthlyUsage || 0), 0),
+    totalRevenue: allUsers.reduce((sum, u) => sum + (u?.plan === 'Pro' ? 29 : u?.plan === 'Agency' ? 199 : 0), 0),
     growthRate: 18,
     planDistribution: [
-      { name: 'Agency', value: Math.round((allUsers.filter(u => u.plan === 'Agency').length / Math.max(1, allUsers.length)) * 100) },
-      { name: 'Pro', value: Math.round((allUsers.filter(u => u.plan === 'Pro').length / Math.max(1, allUsers.length)) * 100) },
-      { name: 'Free', value: Math.round((allUsers.filter(u => u.plan === 'Free').length / Math.max(1, allUsers.length)) * 100) },
+      { name: 'Agency', value: Math.round((allUsers.filter(u => u?.plan === 'Agency').length / Math.max(1, allUsers.length)) * 100) },
+      { name: 'Pro', value: Math.round((allUsers.filter(u => u?.plan === 'Pro').length / Math.max(1, allUsers.length)) * 100) },
+      { name: 'Free', value: Math.round((allUsers.filter(u => u?.plan === 'Free').length / Math.max(1, allUsers.length)) * 100) },
     ],
     usageHistory: Array.from({ length: 30 }, (_, i) => ({
       date: `${i + 1} Apr`,
@@ -244,8 +245,8 @@ const App: React.FC = () => {
           <div className="h-8 w-px bg-slate-200"></div>
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{userAccount?.plan} ACCESS</p>
-              <p className="text-xs font-bold text-slate-700">{userAccount?.email}</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{userAccount?.plan || 'Standard'} ACCESS</p>
+              <p className="text-xs font-bold text-slate-700">{userAccount?.email || 'Unauthorized'}</p>
             </div>
             <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
               <LogOut size={20} />
@@ -311,7 +312,7 @@ const App: React.FC = () => {
                {[
                  { icon: <ShieldCheck size={18} />, label: "Privacy Ensured", sub: "Data encrypted at rest" },
                  { icon: <TrendingUp size={18} />, label: "Industry Benchmarks", sub: "Compared to top 5% of web" },
-                 { icon: <Sparkles size={18} />, label: "LLM Ready", sub: "Optimized for Gemini & GPT-4o" }
+                 { icon: <Sparkles size={18} />, label: "LLM Ready", sub: "Optimized for Gemini & ChatGPT" }
                ].map((feat, i) => (
                  <div key={i} className="flex items-center gap-3 px-4">
                    <div className="text-blue-600">{feat.icon}</div>
