@@ -10,9 +10,10 @@ import { HowItWorks } from './components/HowItWorks';
 import { PricingView } from './components/PricingView';
 import { LoginView } from './components/LoginView';
 import { StripeCheckout } from './components/StripeCheckout';
+import { ForgotPasswordView } from './components/ForgotPasswordView';
 
 // Extended UserAccount for the simulated database
-interface UserRecord extends UserAccount {
+export interface UserRecord extends UserAccount {
   password?: string;
 }
 
@@ -33,16 +34,39 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   // App Navigation State
-  const [currentView, setCurrentView] = useState<'HOME' | 'HOW_IT_WORKS' | 'PRICING' | 'AUTH' | 'STRIPE'>('AUTH');
+  const [currentView, setCurrentView] = useState<'HOME' | 'HOW_IT_WORKS' | 'PRICING' | 'AUTH' | 'STRIPE' | 'FORGOT_PASSWORD'>('AUTH');
   const [selectedPlanForSignup, setSelectedPlanForSignup] = useState<UserPlan | null>(null);
 
   // Simulated User Database
   const [users, setUsers] = useState<Record<string, UserRecord>>(() => {
     try {
       const saved = localStorage.getItem('geo_sentinel_users');
-      return saved ? JSON.parse(saved) : {};
+      const baseUsers = saved ? JSON.parse(saved) : {};
+      
+      // Emergency Provisioning: Ensure the admin email always exists in the "DB"
+      const adminEmail = 'marino.frank@gmail.com';
+      if (!baseUsers[adminEmail]) {
+        baseUsers[adminEmail] = {
+          email: adminEmail,
+          password: 'Password123!', // Temporary emergency pass
+          plan: 'Agency',
+          dailyUsage: 0,
+          monthlyUsage: 0
+        };
+      }
+      return baseUsers;
     } catch {
-      return {};
+      // Fallback if JSON is malformed
+      const emergency: Record<string, UserRecord> = {
+        'marino.frank@gmail.com': {
+          email: 'marino.frank@gmail.com',
+          password: 'Password123!',
+          plan: 'Agency',
+          dailyUsage: 0,
+          monthlyUsage: 0
+        }
+      };
+      return emergency;
     }
   });
 
@@ -93,6 +117,27 @@ const App: React.FC = () => {
     }
   };
 
+  const handleResetPassword = (email: string, newPassword: string): string | null => {
+    if (!users[email]) {
+      return "Identity lookup failed: Email not found in security database.";
+    }
+    
+    if (!isPasswordStrong(newPassword)) {
+      return "Protocol Error: New password does not meet security standards.";
+    }
+
+    setUsers(prev => ({
+      ...prev,
+      [email]: {
+        ...prev[email],
+        password: newPassword
+      }
+    }));
+    
+    setCurrentView('AUTH');
+    return null;
+  };
+
   const handleLogout = () => {
     setIsAuthenticated(false);
     setCurrentUserEmail(null);
@@ -113,7 +158,6 @@ const App: React.FC = () => {
   const handleStripeSuccess = (email?: string, password?: string) => {
     if (!email || !password) return;
 
-    // Final security check for password strength in App logic
     if (!isPasswordStrong(password)) {
       console.error("Critical Security Breach: Weak password bypassed frontend validation.");
       return;
@@ -224,7 +268,15 @@ const App: React.FC = () => {
           />
         );
       }
-      return <LoginView onLogin={handleLogin} onSignUpClick={handleSignUpStart} />;
+      if (currentView === 'FORGOT_PASSWORD') {
+        return (
+          <ForgotPasswordView 
+            onResetPassword={handleResetPassword} 
+            onBack={() => setCurrentView('AUTH')} 
+          />
+        );
+      }
+      return <LoginView onLogin={handleLogin} onSignUpClick={handleSignUpStart} onForgotPasswordClick={() => setCurrentView('FORGOT_PASSWORD')} />;
     }
 
     if (currentView === 'PRICING') {

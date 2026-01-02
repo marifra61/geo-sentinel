@@ -5,9 +5,10 @@ import { ShieldCheck, Mail, Lock, ArrowRight, Github, AlertCircle } from 'lucide
 interface LoginViewProps {
   onLogin: (email: string, password: string) => string | null; // Returns error message or null
   onSignUpClick: () => void;
+  onForgotPasswordClick: () => void;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSignUpClick }) => {
+export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSignUpClick, onForgotPasswordClick }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,9 +49,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSignUpClick }) 
               Log In
             </button>
             <button 
-              onClick={() => {
-                onSignUpClick();
-              }}
+              onClick={onSignUpClick}
               className="flex-1 py-2 text-sm font-bold rounded-lg transition-all text-slate-500 hover:text-slate-700"
             >
               Sign Up
@@ -96,7 +95,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSignUpClick }) 
             </div>
 
             <div className="flex justify-end">
-              <a href="#" className="text-[10px] font-black uppercase tracking-wider text-blue-600 hover:text-blue-700">Restore Access</a>
+              <button 
+                type="button"
+                onClick={onForgotPasswordClick}
+                className="text-[10px] font-black uppercase tracking-wider text-blue-600 hover:text-blue-700"
+              >
+                Restore Access
+              </button>
             </div>
 
             <button 
