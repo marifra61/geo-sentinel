@@ -1,5 +1,4 @@
 
-
 export enum AnalysisStatus {
   IDLE = 'IDLE',
   ANALYZING = 'ANALYZING',
@@ -10,13 +9,10 @@ export enum AnalysisStatus {
 export type UserPlan = 'Free' | 'Pro' | 'Agency';
 
 export interface UserAccount {
-  id: string;
   plan: UserPlan;
   dailyUsage: number;
   monthlyUsage: number;
-  email: string;
-  joinedDate: string;
-  isAdmin?: boolean;
+  email?: string;
 }
 
 export interface Metric {
@@ -80,14 +76,4 @@ export interface SeoReport {
   recommendations: Recommendation[];
   // Plan-specific metadata
   planAtGeneration: UserPlan;
-  // Support for Google Search grounding links
-  groundingSources?: { title?: string; uri?: string }[];
-}
-
-export interface AdminAnalytics {
-  totalAudits: number;
-  totalRevenue: number;
-  growthRate: number;
-  planDistribution: { name: string; value: number }[];
-  usageHistory: { date: string; audits: number }[];
 }

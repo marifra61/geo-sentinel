@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { SeoReport, Metric, ContentGap, TechnicalIssue, UserPlan } from '../types';
 import { PdfGenerator } from './PdfGenerator';
@@ -32,13 +31,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   ZapOff,
-  Crown,
-  MessageCircle,
-  Cpu,
-  Feather,
-  BarChart4,
-  Flame,
-  Link as LinkIcon
+  Crown
 } from 'lucide-react';
 
 interface ReportViewProps {
@@ -60,15 +53,15 @@ const ScoreBadge: React.FC<{ score: number }> = ({ score }) => {
 };
 
 const MarketPositionBadge: React.FC<{ position: string }> = ({ position }) => {
-  const styles: Record<string, string> = {
+  const styles = {
     'Leader': 'bg-green-100 text-green-700 border-green-200',
     'Competitive': 'bg-blue-100 text-blue-700 border-blue-200',
     'Behind': 'bg-yellow-100 text-yellow-700 border-yellow-200',
     'At Risk': 'bg-red-100 text-red-700 border-red-200',
-  };
+  }[position] || 'bg-slate-100 text-slate-700 border-slate-200';
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${styles[position] || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${styles}`}>
       {position}
     </span>
   );
@@ -78,31 +71,31 @@ const PlatformIcon: React.FC<{ platform: string }> = ({ platform }) => {
   switch (platform) {
     case 'Gemini':
       return (
-        <div className="p-2 rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/30 transition-transform hover:scale-110">
+        <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shadow-sm">
           <Sparkles className="w-5 h-5" />
         </div>
       );
     case 'ChatGPT':
       return (
-        <div className="p-2 rounded-xl bg-[#10a37f] text-white shadow-lg shadow-emerald-500/30 transition-transform hover:scale-110">
-          <Zap className="w-5 h-5" />
+        <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm">
+          <MessageSquareMore className="w-5 h-5" />
         </div>
       );
     case 'Perplexity':
       return (
-        <div className="p-2 rounded-xl bg-cyan-600 text-white shadow-lg shadow-cyan-500/30 transition-transform hover:scale-110">
+        <div className="p-2 rounded-xl bg-cyan-50 text-cyan-700 border border-cyan-100 shadow-sm">
           <Search className="w-5 h-5" />
         </div>
       );
     case 'Claude':
       return (
-        <div className="p-2 rounded-xl bg-[#d97757] text-white shadow-lg shadow-orange-500/30 transition-transform hover:scale-110">
-          <Feather className="w-5 h-5" />
+        <div className="p-2 rounded-xl bg-orange-50 text-orange-700 border border-orange-100 shadow-sm">
+          <Brain className="w-5 h-5" />
         </div>
       );
     default:
       return (
-        <div className="p-2 rounded-xl bg-slate-900 text-white shadow-lg transition-transform hover:scale-110">
+        <div className="p-2 rounded-xl bg-slate-50 text-slate-500 border border-slate-100 shadow-sm">
           <Bot className="w-5 h-5" />
         </div>
       );
@@ -124,7 +117,7 @@ const getMetricImportance = (name: string) => {
   if (name.includes('Answer Engine')) return "Directly impacts being chosen as the 'featured' answer in zero-click searches.";
   if (name.includes('Entity Authority')) return "Determines how much 'trust' the model assigns to your brand's facts vs competitors.";
   if (name.includes('Semantic Coverage')) return "Essential for ranking for broad topical queries, not just specific keywords.";
-  if (name.includes('Citation Potential')) return "Crucial for being referenced as a source. AI models prioritize content with high-quality outbound links and clear sourcing.";
+  if (name.includes('Citation Potential')) return "Crucial for being referenced as a source. AI models prioritize content with high-quality outbound links and clear sourcing. To optimize, link to authoritative data and ensure your key facts are formatted for easy machine extraction.";
   if (name.includes('Factual Accuracy')) return "LLMs prioritize sources that minimize hallucinations. Accuracy builds permanent authority.";
   return "Fundamental component of the generative search visibility algorithm.";
 };
@@ -187,26 +180,26 @@ const CustomRadarTooltip = ({ active, payload }: any) => {
 const AiFrequencyBadge: React.FC<{ frequency: ContentGap['aiFrequency'] }> = ({ frequency }) => {
   const configs = {
     'Often': {
-      color: 'bg-indigo-600 text-white border-indigo-700 shadow-md',
-      icon: <Flame size={14} className="animate-pulse" />,
-      label: 'CRITICAL AI INTEREST'
+      color: 'bg-green-100 text-green-700 border-green-200',
+      icon: <Activity size={12} className="shrink-0" />,
+      label: 'High AI Interest'
     },
     'Sometimes': {
-      color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-      icon: <Activity size={12} className="shrink-0" />,
-      label: 'Active Trend'
+      color: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+      icon: <Clock size={12} className="shrink-0" />,
+      label: 'Steady AI Interest'
     },
     'Rarely': {
       color: 'bg-slate-100 text-slate-600 border-slate-200',
-      icon: <Clock size={12} className="shrink-0" />,
-      label: 'Developing'
+      icon: <Minus size={12} className="shrink-0" />,
+      label: 'Niche AI Interest'
     }
   };
 
   const config = configs[frequency] || configs['Rarely'];
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${config.color}`}>
+    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${config.color}`}>
       {config.icon}
       {config.label}
     </div>
@@ -270,30 +263,6 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, userPlan, onRese
           <PdfGenerator report={report} userPlan={userPlan} />
         </div>
       </div>
-
-      {/* Grounding Sources: MUST extract and list URLs if using Google Search */}
-      {report.groundingSources && report.groundingSources.length > 0 && (
-        <div className="mb-8 bg-slate-50 border border-slate-200 rounded-2xl p-6">
-          <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <Globe className="text-blue-500" size={20} />
-            Search Grounding Sources
-          </h2>
-          <div className="flex flex-wrap gap-4">
-            {report.groundingSources.map((source, i) => (
-              <a 
-                key={i} 
-                href={source.uri} 
-                target="_blank" 
-                rel="noreferrer"
-                className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
-              >
-                <LinkIcon size={14} className="shrink-0" />
-                <span className="truncate max-w-[200px]">{source.title || source.uri}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Score & Benchmark Card */}
@@ -412,7 +381,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, userPlan, onRese
         {/* Content Gaps Section */}
         <div>
           <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-            <BarChart4 className="text-indigo-600" size={24} />
+            <Search className="text-indigo-600" size={24} />
             AI Content Opportunities
           </h2>
           <div className="space-y-4">
@@ -420,18 +389,18 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, userPlan, onRese
               <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-200 transition-all group">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors text-lg">{gap.topic}</h3>
-                    <p className="text-xs text-slate-500 font-black mt-1 uppercase tracking-widest flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{gap.topic}</h3>
+                    <p className="text-xs text-slate-500 font-medium mt-0.5 uppercase tracking-wider flex items-center gap-2">
                       <Layers size={12} className="text-slate-400" />
-                      Global Demand: <span className="text-indigo-600">{gap.searchVolume}</span>
+                      Search Volume: <span className="text-slate-700">{gap.searchVolume}</span>
                     </p>
                   </div>
                   <AiFrequencyBadge frequency={gap.aiFrequency} />
                 </div>
                 <div className="flex flex-wrap gap-2 mt-4">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest w-full mb-1">Competitive Presence:</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest w-full mb-1">Competitors covering this:</span>
                   {gap.competitorsCovering.map((comp, ci) => (
-                    <span key={ci} className="px-2 py-1 bg-slate-50 border border-slate-200 rounded text-[10px] font-bold text-slate-600">
+                    <span key={ci} className="px-2 py-1 bg-slate-50 border border-slate-100 rounded text-[10px] font-bold text-slate-600">
                       {comp}
                     </span>
                   ))}
@@ -494,15 +463,15 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, userPlan, onRese
         <div className="flex flex-col">
            <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
              <Brain className="text-purple-600" size={24} />
-             Platform Insights
+             Platform Visibility
            </h2>
            <div className="grid grid-cols-1 gap-4 flex-1">
              {report.aiInsights.map((insight, idx) => (
                <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
                  <div className="flex justify-between items-center mb-3">
-                   <div className="flex items-center gap-4">
+                   <div className="flex items-center gap-3">
                      <PlatformIcon platform={insight.platform} />
-                     <span className="font-black text-slate-900 text-lg uppercase tracking-tight">{insight.platform}</span>
+                     <span className="font-bold text-slate-800">{insight.platform}</span>
                    </div>
                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-wider ${
                      insight.visibility === 'High' ? 'bg-green-100 text-green-700' :
@@ -512,10 +481,8 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, userPlan, onRese
                      {insight.visibility} Visibility
                    </span>
                  </div>
-                 <p className="text-sm text-slate-600 font-medium leading-relaxed group-hover:text-slate-800 transition-colors">
-                   {insight.suggestion}
-                 </p>
-                 <div className="absolute top-0 right-0 h-full w-1.5 bg-gradient-to-b from-transparent via-slate-200 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                 <p className="text-sm text-slate-600 font-medium leading-relaxed">{insight.suggestion}</p>
+                 <div className="absolute top-0 right-0 h-full w-1 bg-gradient-to-b from-transparent via-slate-200 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                </div>
              ))}
            </div>
@@ -525,7 +492,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, userPlan, onRese
         <div>
            <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
              <ArrowUpRight className="text-blue-600" size={24} />
-             Execution Roadmap
+             Strategic Roadmap
            </h2>
            <div className="space-y-4">
              {report.recommendations.map((rec, idx) => (
@@ -543,12 +510,12 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, userPlan, onRese
                    <div className="bg-blue-600 text-white p-1.5 rounded-lg shrink-0">
                      <Target size={14} />
                    </div>
-                   <p><span className="text-blue-600 uppercase text-[10px] tracking-widest block mb-0.5">Primary Action</span>{rec.actionItem}</p>
+                   <p><span className="text-blue-600 uppercase text-[10px] tracking-widest block mb-0.5">Execution Step</span>{rec.actionItem}</p>
                  </div>
                  {rec.estimatedLift && (
                     <div className="text-xs font-bold text-green-600 mt-4 flex items-center gap-1.5 bg-green-50 w-fit px-3 py-1 rounded-full border border-green-100">
                       <Zap size={12} />
-                      Expected Visibility Lift: {rec.estimatedLift}
+                      Expected Lift: {rec.estimatedLift}
                     </div>
                  )}
                </div>
