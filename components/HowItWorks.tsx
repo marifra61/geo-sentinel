@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Search, Database, MousePointerClick, Brain, Cpu, MessageSquare, ArrowRight, Layers, FileText, CheckCircle2 } from 'lucide-react';
+import { Search, Database, MousePointerClick, Brain, Cpu, MessageSquare, ArrowRight, Layers, FileText, CheckCircle2, Sparkles, Zap, Feather } from 'lucide-react';
 
 interface HowItWorksProps {
   onAnalyze: () => void;
@@ -86,7 +86,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onAnalyze }) => {
             <div className="bg-purple-100 p-3 rounded-lg text-purple-600">
               <Brain size={24} />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">LLM Search (Gemini/ChatGPT)</h2>
+            <h2 className="text-xl font-bold text-slate-900">Neural Synthesis (ChatGPT/Gemini)</h2>
           </div>
 
           <div className="space-y-6">
@@ -120,11 +120,15 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onAnalyze }) => {
 
             <div className="flex items-start gap-4">
               <div className="mt-1 bg-slate-100 p-1.5 rounded text-slate-500">
-                <MessageSquare size={16} />
+                <div className="flex gap-1">
+                  <Sparkles size={14} className="text-blue-500" />
+                  <Zap size={14} className="text-emerald-500" />
+                  <Feather size={14} className="text-orange-500" />
+                </div>
               </div>
               <div>
                 <h3 className="font-semibold text-slate-800">3. The Goal: The Answer</h3>
-                <p className="text-sm text-slate-600 mt-1">The user gets a direct answer. Your goal is to be the <strong>primary source</strong> cited in that answer.</p>
+                <p className="text-sm text-slate-600 mt-1">The user gets a direct answer from Gemini, ChatGPT, or Claude. Your goal is to be the <strong>primary source</strong> cited in that answer.</p>
               </div>
             </div>
           </div>

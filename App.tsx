@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Sparkles, AlertCircle, TrendingUp, ShieldCheck, CreditCard, User, LogOut, Crown, ChevronRight, LayoutDashboard } from 'lucide-react';
+import { Search, Sparkles, AlertCircle, TrendingUp, ShieldCheck, CreditCard, User, LogOut, Crown, ChevronRight, LayoutDashboard, Zap, Feather } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { analyzeUrl } from './services/geminiService';
 import { AnalysisStatus, SeoReport, UserPlan, UserAccount, AdminAnalytics } from './types';
@@ -366,12 +366,32 @@ const App: React.FC = () => {
                   )}
                 </div>
 
-                {/* AI Stack */}
-                <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 opacity-40 grayscale hover:grayscale-0 transition-all duration-700 mb-20">
-                  <div className="text-center font-black text-xl text-slate-900 italic tracking-tighter">GEMINI</div>
-                  <div className="text-center font-black text-xl text-slate-900 italic tracking-tighter">GPT-4o</div>
-                  <div className="text-center font-black text-xl text-slate-900 italic tracking-tighter">CLAUDE</div>
-                  <div className="text-center font-black text-xl text-slate-900 italic tracking-tighter">PERPLEXITY</div>
+                {/* AI Stack Icons Marquee */}
+                <div className="mt-16 flex flex-wrap items-center justify-center gap-x-12 gap-y-8 opacity-30 grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-700 mb-20 px-8">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-500/10 p-2 rounded-xl border border-blue-500/20 text-blue-500">
+                      <Sparkles size={20} />
+                    </div>
+                    <div className="font-black text-xl text-slate-900 italic tracking-tighter">GEMINI</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20 text-emerald-500">
+                      <Zap size={20} />
+                    </div>
+                    <div className="font-black text-xl text-slate-900 italic tracking-tighter">CHATGPT</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-orange-500/10 p-2 rounded-xl border border-orange-500/20 text-orange-500">
+                      <Feather size={20} />
+                    </div>
+                    <div className="font-black text-xl text-slate-900 italic tracking-tighter">CLAUDE</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-cyan-500/10 p-2 rounded-xl border border-cyan-500/20 text-cyan-500">
+                      <Search size={20} />
+                    </div>
+                    <div className="font-black text-xl text-slate-900 italic tracking-tighter">PERPLEXITY</div>
+                  </div>
                 </div>
 
                 {/* Projection Graph */}

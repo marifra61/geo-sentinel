@@ -9,7 +9,7 @@ export const analyzeUrl = async (url: string): Promise<SeoReport> => {
   
   const prompt = `
     You are GEO Sentinel, an elite enterprise-grade Generative Engine Optimization (GEO) forensic auditor. 
-    Your mission is to perform an exhaustive analysis of the following URL to determine how "visible" and "citable" it is to LLMs like Gemini, Claude, and GPT-4o.
+    Your mission is to perform an exhaustive analysis of the following URL to determine how "visible" and "citable" it is to LLMs like Gemini, Claude, and ChatGPT.
     
     Target URL: ${url}
 
