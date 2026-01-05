@@ -76,4 +76,6 @@ export interface SeoReport {
   recommendations: Recommendation[];
   // Plan-specific metadata
   planAtGeneration: UserPlan;
+  // Mandatory source attribution for Search Grounding
+  groundingSources?: Array<{ title: string; uri: string }>;
 }

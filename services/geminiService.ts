@@ -2,10 +2,12 @@
 import { GoogleGenAI } from "@google/genai";
 import { SeoReport } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const analyzeUrl = async (url: string): Promise<SeoReport> => {
-  const modelId = "gemini-3-pro-preview"; 
+  // Use gemini-3-flash-preview for optimized search grounding as per SDK guidelines
+  const modelId = "gemini-3-flash-preview"; 
+  
+  // Create fresh instance to ensure latest environment keys are captured
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const prompt = `
     You are GEO Sentinel, an elite enterprise-grade Generative Engine Optimization (GEO) forensic auditor. 
@@ -98,14 +100,20 @@ export const analyzeUrl = async (url: string): Promise<SeoReport> => {
 
   const text = response.text;
   if (!text) {
-    throw new Error("No response from AI");
+    throw new Error("No response from AI. Please check your connection or API key.");
   }
+
+  const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+  const groundingSources = groundingChunks?.map((chunk: any) => ({
+    title: chunk.web?.title || 'Search Citation',
+    uri: chunk.web?.uri || ''
+  })).filter((s: any) => s.uri) || [];
 
   const startIndex = text.indexOf('{');
   const endIndex = text.lastIndexOf('}');
 
   if (startIndex === -1 || endIndex === -1) {
-    throw new Error("AI response did not contain a valid JSON object");
+    throw new Error("Neural output synthesis failed. The model generated invalid content structure.");
   }
 
   const jsonString = text.substring(startIndex, endIndex + 1);
@@ -114,12 +122,13 @@ export const analyzeUrl = async (url: string): Promise<SeoReport> => {
   try {
     data = JSON.parse(jsonString);
   } catch (e) {
-    throw new Error("AI response contained invalid JSON syntax");
+    throw new Error("Neural response parsing error. Please try again.");
   }
 
   return {
     ...data,
     url,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    groundingSources
   };
 };

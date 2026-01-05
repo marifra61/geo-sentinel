@@ -523,6 +523,31 @@ export const ReportView: React.FC<ReportViewProps> = ({ report, userPlan, onRese
            </div>
         </div>
       </div>
+
+      {/* Grounding Sources - Mandatory as per Gemini API Guidelines for googleSearch tool */}
+      {report.groundingSources && report.groundingSources.length > 0 && (
+        <div className="mt-12 pt-8 border-t border-slate-200">
+          <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+            <Globe className="text-blue-600" size={24} />
+            Neural Source Attribution
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            {report.groundingSources.map((source, i) => (
+              <a 
+                key={i}
+                href={source.uri}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm"
+              >
+                <Search size={14} />
+                {source.title}
+                <ArrowUpRight size={14} />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

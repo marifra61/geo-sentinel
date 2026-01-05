@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, TrendingUp, ShieldCheck, CreditCard, User, LogOut, Crown, ChevronRight, AlertCircle } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Search, TrendingUp, ShieldCheck, CreditCard, User, LogOut, Crown, ChevronRight, AlertCircle, LayoutDashboard, BarChart4, Users, Settings } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from 'recharts';
 import { analyzeUrl } from './services/geminiService';
 import { AnalysisStatus, SeoReport, UserPlan, UserAccount } from './types';
 import { LoadingState } from './components/LoadingState';
@@ -11,10 +11,12 @@ import { PricingView } from './components/PricingView';
 import { LoginView } from './components/LoginView';
 import { StripeCheckout } from './components/StripeCheckout';
 import { ForgotPasswordView } from './components/ForgotPasswordView';
+import { AdminDashboard } from './components/AdminDashboard';
 
 // Extended UserAccount for the simulated database
 export interface UserRecord extends UserAccount {
   password?: string;
+  joinDate?: string;
 }
 
 // Global Password Strength Validator
@@ -34,7 +36,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   // App Navigation State
-  const [currentView, setCurrentView] = useState<'HOME' | 'HOW_IT_WORKS' | 'PRICING' | 'AUTH' | 'STRIPE' | 'FORGOT_PASSWORD'>('AUTH');
+  const [currentView, setCurrentView] = useState<'HOME' | 'HOW_IT_WORKS' | 'PRICING' | 'AUTH' | 'STRIPE' | 'FORGOT_PASSWORD' | 'ADMIN'>('AUTH');
   const [selectedPlanForSignup, setSelectedPlanForSignup] = useState<UserPlan | null>(null);
 
   // Simulated User Database
@@ -43,27 +45,27 @@ const App: React.FC = () => {
       const saved = localStorage.getItem('geo_sentinel_users');
       const baseUsers = saved ? JSON.parse(saved) : {};
       
-      // Emergency Provisioning: Ensure the admin email always exists in the "DB"
       const adminEmail = 'marino.frank@gmail.com';
       if (!baseUsers[adminEmail]) {
         baseUsers[adminEmail] = {
           email: adminEmail,
-          password: 'Password123!', // Temporary emergency pass
+          password: 'Password123!',
           plan: 'Agency',
           dailyUsage: 0,
-          monthlyUsage: 0
+          monthlyUsage: 0,
+          joinDate: new Date().toISOString()
         };
       }
       return baseUsers;
     } catch {
-      // Fallback if JSON is malformed
       const emergency: Record<string, UserRecord> = {
         'marino.frank@gmail.com': {
           email: 'marino.frank@gmail.com',
           password: 'Password123!',
           plan: 'Agency',
           dailyUsage: 0,
-          monthlyUsage: 0
+          monthlyUsage: 0,
+          joinDate: new Date().toISOString()
         }
       };
       return emergency;
@@ -107,7 +109,8 @@ const App: React.FC = () => {
       if (user.password === password) {
         setIsAuthenticated(true);
         setCurrentUserEmail(email);
-        setCurrentView('HOME');
+        // If agency, go to admin by default
+        setCurrentView(user.plan === 'Agency' ? 'ADMIN' : 'HOME');
         return null;
       } else {
         return "Security Protocol Failure: Incorrect password for this identity.";
@@ -126,13 +129,17 @@ const App: React.FC = () => {
       return "Protocol Error: New password does not meet security standards.";
     }
 
-    setUsers(prev => ({
-      ...prev,
-      [email]: {
-        ...prev[email],
-        password: newPassword
-      }
-    }));
+    setUsers(prev => {
+      const updatedPlan: UserPlan = (email === 'marino.frank@gmail.com' || prev[email].plan === 'Agency') ? 'Agency' : prev[email].plan;
+      return {
+        ...prev,
+        [email]: {
+          ...prev[email],
+          password: newPassword,
+          plan: updatedPlan
+        }
+      };
+    });
     
     setCurrentView('AUTH');
     return null;
@@ -168,7 +175,8 @@ const App: React.FC = () => {
       password,
       plan: selectedPlanForSignup || 'Free',
       dailyUsage: 0,
-      monthlyUsage: 0
+      monthlyUsage: 0,
+      joinDate: new Date().toISOString()
     };
 
     setUsers(prev => ({
@@ -178,7 +186,7 @@ const App: React.FC = () => {
 
     setIsAuthenticated(true);
     setCurrentUserEmail(email);
-    setCurrentView('HOME');
+    setCurrentView(newUser.plan === 'Agency' ? 'ADMIN' : 'HOME');
     setSelectedPlanForSignup(null);
   };
 
@@ -228,9 +236,22 @@ const App: React.FC = () => {
       
       setStatus(AnalysisStatus.COMPLETE);
     } catch (err: any) {
-      console.error(err);
+      console.error("Analysis Error Details:", err);
       setStatus(AnalysisStatus.ERROR);
-      setError(err.message || "Forensic audit failed. Verify domain and try again.");
+      
+      let friendlyError = "Forensic audit failed. Verify domain and try again.";
+      
+      // Check for common network/SDK error patterns
+      const errorMessage = err.message || "";
+      if (errorMessage.includes("404") || errorMessage.includes("NOT_FOUND")) {
+        friendlyError = "Identity node lookup failed (404). This usually means the model endpoint is temporarily unavailable or your protocol session has expired. Please refresh the app.";
+      } else if (errorMessage.includes("403") || errorMessage.includes("PERMISSION_DENIED")) {
+        friendlyError = "Security Access Denied (403). Your API signature is invalid or your workspace has been restricted.";
+      } else if (errorMessage.includes("JSON") || errorMessage.includes("syntax")) {
+        friendlyError = "Neural synthesis error. The AI output could not be parsed into a valid report. Please retry.";
+      }
+
+      setError(friendlyError);
     }
   };
 
@@ -320,38 +341,48 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-slate-50">
         <nav className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => { handleReset(); setCurrentView('HOME'); }}>
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => { handleReset(); setCurrentView(userAccount.plan === 'Agency' ? 'ADMIN' : 'HOME'); }}>
               <div className="bg-slate-900 p-1.5 rounded-lg">
                 <ShieldCheck className="text-blue-500 w-5 h-5" />
               </div>
               <span className="font-bold text-xl tracking-tight text-slate-900">GEO <span className="text-blue-600">Sentinel</span></span>
             </div>
             
-            <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-500">
+            <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-500">
+              {userAccount.plan === 'Agency' && (
+                <button 
+                  onClick={() => setCurrentView('ADMIN')}
+                  className={`flex items-center gap-2 transition-colors ${currentView === 'ADMIN' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}
+                >
+                  <LayoutDashboard size={18} />
+                  Admin Console
+                </button>
+              )}
+              <button 
+                onClick={() => { setCurrentView('HOME'); setStatus(AnalysisStatus.IDLE); }}
+                className={`flex items-center gap-2 transition-colors ${currentView === 'HOME' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}
+              >
+                <Search size={18} />
+                Neural Audit
+              </button>
               <button 
                 onClick={() => setCurrentView('HOW_IT_WORKS')}
                 className={`transition-colors ${currentView === 'HOW_IT_WORKS' ? 'text-blue-600 font-bold' : 'hover:text-blue-600'}`}
               >
                 How it Works
               </button>
-              <button 
-                onClick={() => setCurrentView('PRICING')}
-                className="hover:text-blue-600 transition-colors"
-              >
-                Manage Plan
-              </button>
               
               <div className="h-6 w-px bg-slate-200"></div>
               
               <div className="flex items-center gap-4">
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border ${
+                <button onClick={() => setCurrentView('PRICING')} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border transition-all ${
                   userAccount.plan === 'Agency' ? 'bg-slate-900 text-blue-400 border-slate-800' :
                   userAccount.plan === 'Pro' ? 'bg-blue-50 text-blue-600 border-blue-100' :
                   'bg-slate-100 text-slate-500 border-slate-200'
                 }`}>
                   {userAccount.plan === 'Agency' ? <Crown size={12} /> : userAccount.plan === 'Pro' ? <ShieldCheck size={12} /> : <User size={12} />}
                   {userAccount.plan} Protocol
-                </div>
+                </button>
                 <button onClick={handleLogout} className="flex items-center gap-1 text-slate-400 hover:text-red-500 transition-colors font-bold text-xs uppercase">
                   <LogOut size={16} />
                   Logout
@@ -362,7 +393,9 @@ const App: React.FC = () => {
         </nav>
 
         <main>
-          {currentView === 'HOW_IT_WORKS' ? (
+          {currentView === 'ADMIN' && userAccount.plan === 'Agency' ? (
+            <AdminDashboard users={users} currentUserEmail={currentUserEmail!} />
+          ) : currentView === 'HOW_IT_WORKS' ? (
             <HowItWorks onAnalyze={() => { setCurrentView('HOME'); handleReset(); }} />
           ) : (
             <>
