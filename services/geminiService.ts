@@ -1,13 +1,7 @@
-
-import { GoogleGenAI } from "@google/genai";
 import { SeoReport } from "../types";
 
 export const analyzeUrl = async (url: string): Promise<SeoReport> => {
-  // Use gemini-3-flash-preview for the most stable Search Grounding experience
-  const modelId = "gemini-3-flash-preview"; 
-  
-  // Use the environment key directly without manual selection
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const modelId = "gemini-2.0-flash";
   
   const systemInstruction = `
     You are GEO Sentinel, an elite Generative Engine Optimization (GEO) forensic auditor. 
@@ -32,23 +26,52 @@ export const analyzeUrl = async (url: string): Promise<SeoReport> => {
     }
   `;
 
-  const response = await ai.models.generateContent({
-    model: modelId,
-    contents: `Run a full forensic GEO audit for domain: ${url}. Use grounding to find real competitive context.`,
-    config: {
-      systemInstruction: systemInstruction,
-      tools: [{ googleSearch: {} }],
-      temperature: 0.1 // Low temperature ensures more reliable formatting
+  const requestBody = {
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            text: `Run a full forensic GEO audit for domain: ${url}. Use grounding to find real competitive context.`
+          }
+        ]
+      }
+    ],
+    systemInstruction: {
+      parts: [{ text: systemInstruction }]
+    },
+    tools: [{ googleSearch: {} }],
+    generationConfig: {
+      temperature: 0.1
     }
+  };
+
+  // Call the backend proxy instead of using the SDK directly
+  const response = await fetch(`/api-proxy/v1beta/models/${modelId}:generateContent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody)
   });
 
-  const text = response.text;
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error("API Error:", response.status, errorData);
+    throw new Error(errorData?.error?.message || `API request failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  
+  // Extract text from the response
+  const candidate = data.candidates?.[0];
+  const text = candidate?.content?.parts?.[0]?.text;
+  
   if (!text) {
     throw new Error("Neural response was empty. The node may be temporarily saturated.");
   }
 
-  // Mandatory source extraction for attribution
-  const candidate = response.candidates?.[0];
+  // Extract grounding sources for attribution
   const groundingChunks = candidate?.groundingMetadata?.groundingChunks;
   const groundingSources = groundingChunks?.map((chunk: any) => ({
     title: chunk.web?.title || 'Neural Citation',
@@ -67,14 +90,15 @@ export const analyzeUrl = async (url: string): Promise<SeoReport> => {
   const jsonString = text.substring(startIndex, endIndex + 1);
   
   try {
-    const data = JSON.parse(jsonString);
+    const reportData = JSON.parse(jsonString);
     return {
-      ...data,
+      ...reportData,
       url,
       timestamp: new Date().toISOString(),
       groundingSources
     };
   } catch (e) {
+    console.error("JSON parse error:", e, "Raw JSON string:", jsonString);
     throw new Error("Neural data corruption. The engine returned malformed data.");
   }
 };
