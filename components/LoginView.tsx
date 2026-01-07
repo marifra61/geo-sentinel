@@ -1,18 +1,20 @@
 
 import React, { useState } from 'react';
-import { ShieldCheck, Mail, Lock, ArrowRight, Github, AlertCircle, Wifi } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, ArrowRight, Github, AlertCircle, Wifi, Loader2, Key } from 'lucide-react';
 
 interface LoginViewProps {
-  onLogin: (email: string, password: string) => string | null; // Returns error message or null
+  onLogin: (email: string, password: string) => string | null;
+  onSocialLogin: (provider: string) => void;
   onSignUpClick: () => void;
   onForgotPasswordClick: () => void;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSignUpClick, onForgotPasswordClick }) => {
+export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSocialLogin, onSignUpClick, onForgotPasswordClick }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [socialHandshake, setSocialHandshake] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +28,60 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSignUpClick, on
     }
   };
 
+  const handleSocialClick = (provider: string) => {
+    setSocialHandshake(provider);
+    // Simulate high-fidelity identity provider redirection and verification
+    setTimeout(() => {
+      onSocialLogin(provider);
+      setSocialHandshake(null);
+    }, 2500);
+  };
+
   return (
-    <div className="min-h-[90vh] flex flex-col items-center justify-center px-4 py-12">
+    <div className="min-h-[90vh] flex flex-col items-center justify-center px-4 py-12 relative">
+      
+      {/* Social Handshake Overlay */}
+      {socialHandshake && (
+        <div className="fixed inset-0 z-[1000] bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="max-w-md w-full bg-white rounded-[3rem] p-10 text-center shadow-2xl border border-slate-200">
+            <div className="relative inline-block mb-8">
+              <div className="absolute inset-0 bg-blue-500 blur-3xl opacity-20 rounded-full animate-pulse"></div>
+              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto border border-slate-100">
+                {socialHandshake === 'Google' ? (
+                  <img src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png" className="w-12 h-12" alt="Google" />
+                ) : (
+                  <Github size={48} className="text-slate-950" />
+                )}
+              </div>
+              <Loader2 className="absolute -bottom-2 -right-2 w-10 h-10 text-blue-600 animate-spin bg-white rounded-full p-2 border border-slate-200 shadow-md" />
+            </div>
+            
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Identity Handshake</h3>
+            <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">
+              Authenticating via {socialHandshake} Protocol.<br /> Establishing secure vault connection...
+            </p>
+            
+            <div className="space-y-3 bg-slate-50 p-6 rounded-2xl border border-slate-100 text-left font-mono text-[10px]">
+              <div className="flex justify-between text-blue-600">
+                <span className="font-bold">STATUS</span>
+                <span className="animate-pulse">NEGOTIATING</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>PROVIDER</span>
+                <span className="text-slate-900 font-bold uppercase">{socialHandshake}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>TLS_VER</span>
+                <span className="text-slate-900 font-bold">1.3_VULCAN</span>
+              </div>
+              <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden mt-4">
+                <div className="h-full bg-blue-600 animate-[loading_2.5s_ease-in-out_infinite]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sandbox Status Header */}
       <div className="mb-8 bg-blue-50 border border-blue-100 px-6 py-2.5 rounded-full flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-1000">
         <Wifi size={16} className="text-blue-600 animate-pulse" />
@@ -125,11 +179,19 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSignUpClick, on
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <button type="button" className="flex items-center justify-center gap-3 py-4 border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all font-bold text-xs text-slate-600 shadow-sm active:scale-95">
+              <button 
+                type="button" 
+                onClick={() => handleSocialClick('Google')}
+                className="flex items-center justify-center gap-3 py-4 border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all font-bold text-xs text-slate-600 shadow-sm active:scale-95"
+              >
                 <img src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png" className="w-5 h-5" alt="Google" />
                 Google
               </button>
-              <button type="button" className="flex items-center justify-center gap-3 py-4 border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all font-bold text-xs text-slate-600 shadow-sm active:scale-95">
+              <button 
+                type="button" 
+                onClick={() => handleSocialClick('GitHub')}
+                className="flex items-center justify-center gap-3 py-4 border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all font-bold text-xs text-slate-600 shadow-sm active:scale-95"
+              >
                 <Github size={20} className="text-slate-950" />
                 GitHub
               </button>
@@ -142,6 +204,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSignUpClick, on
       <p className="mt-12 text-center text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] max-w-sm leading-relaxed">
         Identity Protection Protocol v2.4.1 Active • Sandbox Simulation Mode
       </p>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes loading {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+      `}} />
     </div>
   );
 };
