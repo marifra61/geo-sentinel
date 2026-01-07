@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { ShieldCheck, Mail, Lock, ArrowRight, Github, AlertCircle, Wifi, Loader2, Key } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, ArrowRight, Github, AlertCircle, Wifi, Loader2, Key, Globe } from 'lucide-react';
+import { initiateOidcHandshake } from '../services/authService';
 
 interface LoginViewProps {
   onLogin: (email: string, password: string) => string | null;
@@ -28,13 +29,16 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSocialLogin, on
     }
   };
 
-  const handleSocialClick = (provider: string) => {
+  const handleSocialClick = (provider: 'Google' | 'GitHub') => {
     setSocialHandshake(provider);
-    // Simulate high-fidelity identity provider redirection and verification
+    
+    // Construct the actual OAuth redirect URL
+    const callbackUrl = initiateOidcHandshake(provider);
+    
+    // Simulate high-fidelity identity provider redirection
     setTimeout(() => {
-      onSocialLogin(provider);
-      setSocialHandshake(null);
-    }, 2500);
+      window.location.href = callbackUrl;
+    }, 2000);
   };
 
   return (
@@ -42,11 +46,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSocialLogin, on
       
       {/* Social Handshake Overlay */}
       {socialHandshake && (
-        <div className="fixed inset-0 z-[1000] bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="max-w-md w-full bg-white rounded-[3rem] p-10 text-center shadow-2xl border border-slate-200">
+        <div className="fixed inset-0 z-[1000] bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="max-w-md w-full bg-white rounded-[3rem] p-10 text-center shadow-2xl border border-slate-200 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-blue-600 animate-[loading_2s_ease-in-out_infinite]"></div>
+            
             <div className="relative inline-block mb-8">
               <div className="absolute inset-0 bg-blue-500 blur-3xl opacity-20 rounded-full animate-pulse"></div>
-              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto border border-slate-100">
+              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto border border-slate-100 shadow-inner">
                 {socialHandshake === 'Google' ? (
                   <img src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png" className="w-12 h-12" alt="Google" />
                 ) : (
@@ -56,27 +62,29 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSocialLogin, on
               <Loader2 className="absolute -bottom-2 -right-2 w-10 h-10 text-blue-600 animate-spin bg-white rounded-full p-2 border border-slate-200 shadow-md" />
             </div>
             
-            <h3 className="text-2xl font-black text-slate-900 mb-2">Identity Handshake</h3>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Redirecting to {socialHandshake}</h3>
             <p className="text-slate-500 text-sm font-medium mb-8 leading-relaxed">
-              Authenticating via {socialHandshake} Protocol.<br /> Establishing secure vault connection...
+              Negotiating OAuth 2.0 PKCE Handshake.<br /> Creating secure session state...
             </p>
             
             <div className="space-y-3 bg-slate-50 p-6 rounded-2xl border border-slate-100 text-left font-mono text-[10px]">
               <div className="flex justify-between text-blue-600">
-                <span className="font-bold">STATUS</span>
-                <span className="animate-pulse">NEGOTIATING</span>
+                <span className="font-bold tracking-tighter">CIPHER_SUITE</span>
+                <span className="animate-pulse">AES_256_GCM</span>
               </div>
               <div className="flex justify-between text-slate-400">
-                <span>PROVIDER</span>
-                <span className="text-slate-900 font-bold uppercase">{socialHandshake}</span>
+                <span className="tracking-tighter">REDIRECT_URI</span>
+                <span className="text-slate-900 font-bold truncate max-w-[120px]">{window.location.origin}</span>
               </div>
               <div className="flex justify-between text-slate-400">
-                <span>TLS_VER</span>
-                <span className="text-slate-900 font-bold">1.3_VULCAN</span>
+                <span className="tracking-tighter">HANDSHAKE</span>
+                <span className="text-slate-900 font-bold">OIDC_V1_OPEN</span>
               </div>
-              <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden mt-4">
-                <div className="h-full bg-blue-600 animate-[loading_2.5s_ease-in-out_infinite]"></div>
-              </div>
+            </div>
+            
+            <div className="mt-8 flex items-center justify-center gap-2 text-slate-400 text-[9px] font-black uppercase tracking-widest">
+              <Globe size={12} className="animate-spin-slow" />
+              Establishing Secure Socket Layer
             </div>
           </div>
         </div>
@@ -86,7 +94,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSocialLogin, on
       <div className="mb-8 bg-blue-50 border border-blue-100 px-6 py-2.5 rounded-full flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-1000">
         <Wifi size={16} className="text-blue-600 animate-pulse" />
         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-800">
-          Connected to Secure Developer Sandbox (Local Proxy Mode)
+          Neural Auth Layer v3.2.0 • Sandbox Enabled
         </span>
       </div>
 
@@ -98,7 +106,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSocialLogin, on
               <ShieldCheck size={36} />
             </div>
           </div>
-          <h2 className="text-2xl font-black tracking-tight">GEO Sentinel</h2>
+          <h2 className="text-2xl font-black tracking-tight text-white">GEO Sentinel</h2>
           <p className="text-slate-400 text-[10px] mt-2 font-black uppercase tracking-[0.3em]">Neural Access Protocol</p>
         </div>
 
@@ -167,7 +175,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSocialLogin, on
 
             <button 
               type="submit"
-              className="w-full py-5 bg-slate-950 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 group shadow-2xl shadow-slate-200 active:scale-[0.98]"
+              className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 group shadow-2xl shadow-slate-200 active:scale-[0.98]"
             >
               Initialize Session
               <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
@@ -175,7 +183,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSocialLogin, on
 
             <div className="relative py-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
-              <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-white px-3 text-slate-300 font-black tracking-[0.4em]">Integrated Auth</span></div>
+              <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-white px-3 text-slate-300 font-black tracking-[0.4em]">OIDC Federated Auth</span></div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -202,13 +210,20 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSocialLogin, on
       
       {/* Disclaimer */}
       <p className="mt-12 text-center text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] max-w-sm leading-relaxed">
-        Identity Protection Protocol v2.4.1 Active • Sandbox Simulation Mode
+        Identity Protection Protocol v3.2.0 Active • PKCE Handshake Layer
       </p>
 
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes loading {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(200%); }
+        }
+        .animate-spin-slow {
+          animation: spin 3s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}} />
     </div>

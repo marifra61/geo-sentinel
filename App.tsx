@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, TrendingUp, ShieldCheck, CreditCard, User, LogOut, Crown, ChevronRight, AlertCircle, LayoutDashboard, RefreshCw, Brain, Globe, Sparkles } from 'lucide-react';
+import { Search, TrendingUp, ShieldCheck, CreditCard, User, LogOut, Crown, ChevronRight, AlertCircle, LayoutDashboard, RefreshCw, Brain, Globe, Sparkles, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, AreaChart } from 'recharts';
 import { analyzeUrl } from './services/geminiService';
+import { verifyOidcCallback } from './services/authService';
 import { AnalysisStatus, SeoReport, UserPlan, UserAccount } from './types';
 import { LoadingState } from './components/LoadingState';
 import { ReportView } from './components/ReportView';
@@ -41,6 +42,7 @@ const App: React.FC = () => {
   const [status, setStatus] = useState<AnalysisStatus>(AnalysisStatus.IDLE);
   const [report, setReport] = useState<SeoReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isVerifyingOidc, setIsVerifyingOidc] = useState(false);
   
   const [currentView, setCurrentView] = useState<'HOME' | 'HOW_IT_WORKS' | 'PRICING' | 'AUTH' | 'STRIPE' | 'FORGOT_PASSWORD' | 'ADMIN'>('AUTH');
   const [selectedPlanForSignup, setSelectedPlanForSignup] = useState<UserPlan | null>(null);
@@ -74,6 +76,44 @@ const App: React.FC = () => {
     return localStorage.getItem('geo_sentinel_current_user');
   });
 
+  // Effect to handle OIDC Callback from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('code') && params.has('state')) {
+      setIsVerifyingOidc(true);
+      
+      // Artificial delay to simulate real network handshake/token exchange
+      setTimeout(() => {
+        const oidcUser = verifyOidcCallback(params);
+        if (oidcUser) {
+          if (!users[oidcUser.email]) {
+            setUsers(prev => ({
+              ...prev,
+              [oidcUser.email]: {
+                email: oidcUser.email,
+                plan: oidcUser.plan,
+                dailyUsage: 0,
+                monthlyUsage: 0,
+                joinDate: new Date().toISOString()
+              }
+            }));
+          }
+          
+          setIsAuthenticated(true);
+          setCurrentUserEmail(oidcUser.email);
+          setCurrentView('HOME');
+          
+          // Clear URL parameters
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+          setError("OIDC Handshake failed: Security state invalid.");
+          setCurrentView('AUTH');
+        }
+        setIsVerifyingOidc(false);
+      }, 1500);
+    }
+  }, []);
+
   const userAccount = (currentUserEmail && users[currentUserEmail]) 
     ? users[currentUserEmail] 
     : { plan: 'Free' as UserPlan, dailyUsage: 0, monthlyUsage: 0 };
@@ -98,25 +138,7 @@ const App: React.FC = () => {
   };
 
   const handleSocialLogin = (provider: string) => {
-    const mockEmail = `${provider.toLowerCase()}-user@geosentinel.io`;
-    
-    // Auto-provision social user if not exists
-    if (!users[mockEmail]) {
-      setUsers(prev => ({
-        ...prev,
-        [mockEmail]: {
-          email: mockEmail,
-          plan: 'Pro', // Award Pro status for social signups in sandbox
-          dailyUsage: 0,
-          monthlyUsage: 0,
-          joinDate: new Date().toISOString()
-        }
-      }));
-    }
-    
-    setIsAuthenticated(true);
-    setCurrentUserEmail(mockEmail);
-    setCurrentView('HOME');
+    // This is now handled via initiateOidcHandshake in LoginView.tsx which causes a redirect
   };
 
   const handleResetPassword = (email: string, newPassword: string): string | null => {
@@ -169,6 +191,21 @@ const App: React.FC = () => {
       setError(err.message || "Forensic audit failed. Verify domain and retry.");
     }
   };
+
+  if (isVerifyingOidc) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-6">
+        <div className="relative mb-12">
+          <div className="absolute inset-0 bg-blue-500 blur-3xl opacity-20 rounded-full animate-pulse"></div>
+          <Loader2 className="w-20 h-20 text-blue-500 animate-spin relative z-10" />
+        </div>
+        <h2 className="text-3xl font-black mb-4">Securing Identity Protocol</h2>
+        <p className="text-slate-400 font-mono text-xs uppercase tracking-[0.3em] animate-pulse">
+          Exchanging Authorization Code for Bearer Token...
+        </p>
+      </div>
+    );
+  }
 
   const renderViewContent = () => {
     if (!isAuthenticated) {
